@@ -10,6 +10,11 @@
 #include <UserTasks.h>
 #include <NewtonScript.h>
 #include <SerialChipV2.h>
+
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+
 #include "RelocHack.h"
 
 #include "TRFCOMMTool.h"
@@ -17,6 +22,7 @@
 #include "TL2CAPLayer.h"
 #include "THCILayer.h"
 #include "TRFCOMMLayer.h"
+#include "Logger.h"
 
 //-------------------------------
 // 16450 register base addr offsets
@@ -94,6 +100,11 @@ TRFCOMMTool::TRFCOMMTool (unsigned long serviceId):
 	fSDP = NULL;
 	fRFCOMM = NULL;
 	
+	fTool = this;
+	fLogger = new Logger ();
+	fLogger->Initialize ();
+	fLogger->Main ();
+
 	fDriver = DRIVER_GENERIC;
 
 	fRemainingSendBytes = 0;
@@ -131,6 +142,12 @@ TRFCOMMTool::~TRFCOMMTool (void)
 	if (fRFCOMM) delete fRFCOMM;
 	if (fDiscoveredDevices) delete fDiscoveredDevices;
 	if (fTimerEvent) delete fTimerEvent;
+
+	Sleep (3000 * kMilliseconds);
+	fLogger->Close ();
+	Sleep (100 * kMilliseconds);
+	delete fLogger;
+	Sleep (100 * kMilliseconds);
 }
 
 #pragma mark -
@@ -1345,4 +1362,16 @@ void TRFCOMMTool::StopTimer (void)
 	LOG ("TRFCOMMTool::StopTimer\n");
 	
 	fTimerEvent->Abort ();
+}
+
+void TRFCOMMTool::Log (char *format, ...)
+{
+	va_list args;
+	char buffer[128];
+	char *c;
+	
+	va_start (args, format);
+	vsprintf (buffer, format, args);
+	va_end (args);
+	fLogger->Output ((UByte*) buffer, strlen (buffer));
 }

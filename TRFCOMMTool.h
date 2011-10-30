@@ -1,6 +1,8 @@
 #ifndef __TRFCOMMTOOL_H
 #define __TRFCOMMTOOL_H
 
+#include "CircleBuf.h"
+
 class SCCChannelInts;
 class TCMOSerialIOParms;
 class TCMOSerialHardware;
@@ -16,12 +18,14 @@ class TL2CAPLayer;
 class TSDPLayer;
 class TRFCOMMLayer;
 
+class Logger;
+
 #define ArrayCount(x) (sizeof(x)/sizeof(x[0]))
 
 #ifdef forDebug
-#define LOG if (fLogLevel) printf
-#define LOG2 if (fLogLevel >= 2) printf
-#define LOG3 if (fLogLevel >= 3) printf
+#define LOG if (fLogLevel) fTool->Log
+#define LOG2 if (fLogLevel >= 2) fTool->Log
+#define LOG3 if (fLogLevel >= 3) fTool->Log
 #define LOGX printf
 #else
 #define LOG
@@ -100,31 +104,19 @@ struct DiscoveredDevice {
 	UByte fName[249];
 };
 
-#define SET_SHORT(addr, offset, value) \
-	addr[offset] = value & 0x00ff; addr[offset + 1] = (value & 0xff00) >> 8
-#define GET_SHORT(addr, offset) \
-	 (addr[(offset) + 1] * 256 + addr[(offset)])
+#define SET_SHORT(addr, offset, value) addr[offset] = value & 0x00ff; addr[offset + 1] = (value & 0xff00) >> 8
+#define GET_SHORT(addr, offset) (addr[(offset) + 1] * 256 + addr[(offset)])
 
-#define SET_LONG(addr, offset, value) \
-	addr[offset] = value & 0x000000ff;             addr[offset + 1] = (value & 0x0000ff00) >> 8; \
-	addr[offset + 2] = (value & 0x00ff0000) >> 16; addr[offset + 3] = (value & 0xff000000) >> 24;
-#define GET_LONG(addr, offset) \
-	 ((addr[(offset) + 3] << 24) + (addr[(offset) + 2] << 16) + (addr[(offset) + 1] << 8) + addr[(offset)])
+#define SET_LONG(addr, offset, value) addr[offset] = value & 0x000000ff;             addr[offset + 1] = (value & 0x0000ff00) >> 8; 	addr[offset + 2] = (value & 0x00ff0000) >> 16; addr[offset + 3] = (value & 0xff000000) >> 24;
+#define GET_LONG(addr, offset) ((addr[(offset) + 3] << 24) + (addr[(offset) + 2] << 16) + (addr[(offset) + 1] << 8) + addr[(offset)])
 
-#define SET_SHORT_N(addr, offset, value) \
-	addr[offset + 1] =  value & 0x000000ff;       addr[offset] = (value & 0x0000ff00) >> 8;
-#define SET_USHORT_N(addr, offset, value) \
-	addr[offset + 1] =  value & 0x000000ff;       addr[offset] = (value & 0x0000ff00) >> 8;
-#define SET_ULONG_N(addr, offset, value) \
-	addr[offset + 3] =  value & 0x000000ff;       addr[offset + 2] = (value & 0x0000ff00) >> 8; \
-	addr[offset + 1] = (value & 0x00ff0000) >> 16;addr[offset] = (value & 0xff000000) >> 24;
+#define SET_SHORT_N(addr, offset, value) addr[offset + 1] =  value & 0x000000ff;       addr[offset] = (value & 0x0000ff00) >> 8;
+#define SET_USHORT_N(addr, offset, value) addr[offset + 1] =  value & 0x000000ff;       addr[offset] = (value & 0x0000ff00) >> 8;
+#define SET_ULONG_N(addr, offset, value) addr[offset + 3] =  value & 0x000000ff;       addr[offset + 2] = (value & 0x0000ff00) >> 8; addr[offset + 1] = (value & 0x00ff0000) >> 16;addr[offset] = (value & 0xff000000) >> 24;
 
-#define GET_USHORT_N(addr, offset) \
-	* (UShort *) (&addr[offset])
-#define GET_SHORT_N(addr, offset) \
-	* (Short *) (&addr[offset])
-#define GET_ULONG_N(addr, offset) \
-	* (ULong *) (&addr[offset])
+#define GET_USHORT_N(addr, offset) * (UShort *) (&addr[offset])
+#define GET_SHORT_N(addr, offset) * (Short *) (&addr[offset])
+#define GET_ULONG_N(addr, offset) * (ULong *) (&addr[offset])
 	
 #define NUM_ELEMENTS(x) (sizeof (x)/sizeof (x[0]))	
 
@@ -196,78 +188,6 @@ class TSerialChip16450
 {
 public:
 	void WriteSerReg (ULong, UByte);
-};
-
-// ================================================================================
-// ¥ TCircleBuf
-// ================================================================================
-
-class TCircleBuf
-{
-public:
-	Long BufferCountToNextMarker (ULong *);
-	Long FlushBytes ();
-	Long FlushToNextMarker (ULong *);
-	Long Reset ();
-	Long ResetStart ();
-	Long CopyOut (CBufferList *, ULong *, ULong *);
-	Long CopyOut (UByte *, ULong *, ULong *);
-	Long CopyIn (CBufferList *, ULong *);
-	Long CopyIn (UByte *, ULong *, Boolean, ULong);
-	Long GetNextByte (UByte *);
-	Long Allocate (Size);
-	Long Allocate (Size, int, Boolean, Boolean);
-	Long GetNextByte (UByte *, ULong *);
-	Long PeekNextByte (UByte *);
-	Long PeekNextByte (UByte *, ULong *);
-	Long PutNextByte (UByte);
-	Long PutNextByte (UByte, ULong *);
-	Long PutEOM (ULong);
-	Long PutNextStart ();
-	Long PutFirstPossible (UByte);
-	Long PutNextPossible (UByte);
-	Long PutNextEOM (ULong);
-	Long PutNextCommit (UByte);
-	Long GetBytes (TCircleBuf *);
-	Long DMABufInfo (ULong *, ULong *, UByte *, UByte *);
-	Long DMAGetInfo (ULong *);
-	Long DMAGetUpdate (ULong);
-	Long DMAPutInfo (ULong *, ULong *);
-	Long DMAPutUpdate (ULong, UByte, ULong);
-	Long UpdateStart ();
-	Long UpdateEnd ();
-	Long Deallocate ();
-	Long GetAlignLong ();
-	Long PutAlignLong ();
-	Long GetEOMMark (ULong *);
-	Long PutEOMMark (ULong, ULong);
-	Long PeekNextEOMIndex ();
-	Long PeekNextEOMIndex (ULong *);
-	Long BufferSpace ();
-	Long MarkerSpace ();
-	Long MarkerCount ();
-	Long BufferSpace (ULong);
-	Long BufferCount ();
-	Long UpdateStart (ULong);
-	Long UpdateEnd (ULong);
-	
-public:
-	ULong fSize;									/* 0000 */
-	UByte *fBuffer;									/* 0004 */
-	ULong fStart;									/* 0008 */
-	ULong fNext;									/* 000c */
-	
-	ULong filler_0010;
-	
-	UByte filler_0014;
-	UByte filler_0015;
-	
-	ULong filler_0018;
-	
-	ULong fCount;									/* 001c */
-	
-	ULong filler_0020;
-	ULong filler_0024;
 };
 
 // ================================================================================
@@ -761,6 +681,9 @@ public:
 	Byte					fCurrentService;
 	Byte					fNumQueriedServices;
 	
+	TRFCOMMTool				*fTool;
+	Logger					*fLogger;
+	
 public:
 							TRFCOMMTool (unsigned long serviceId);
 	virtual					~TRFCOMMTool (void);
@@ -824,6 +747,8 @@ public:
 	void					StartTimer (TimerType type, ULong milliSecondsDelay, void *userData = NULL);
 	void					TimerExpired (void);
 	void					StopTimer (void);
+	
+	void					Log (char *format, ...);
 };
 
 extern StartCommTool (TCommTool *, ULong, TServiceInfo *);

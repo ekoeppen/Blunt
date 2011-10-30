@@ -37,14 +37,10 @@ NewtonErr TRFCOMMService::Start(TOptionArray* options, ULong serviceId, TService
 	int fLogLevel = 0;
 	
 	r = ServiceToPort (serviceId, port);
-	LOG ("-------------------------------------\nServiceToPort: %d\n", r);
 	if (r == -10067) {
 		tool = new TRFCOMMTool (serviceId);
-		LOG ("  New Tool: %08x\n", tool);
 		r = StartCommTool (tool, serviceId, serviceInfo);
-		LOG ("  StartCommTool: %d\n", r);
 		r = OpenCommTool (serviceInfo->GetPortId (), options, this);
-		LOG ("  OpenCommTool: %d (Port: %04x)\n", r, serviceInfo->GetPortId ());
 	} else {
 		serviceInfo->SetPortId (port->fId);
 		serviceInfo->SetServiceId (serviceId);
